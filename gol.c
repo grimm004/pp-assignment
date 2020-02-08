@@ -84,9 +84,25 @@ int will_be_alive_torus(struct universe* u,  int column, int row) {
 }
 
 void evolve(struct universe* u, int (*rule)(struct universe *u, int column, int row)) {
+    char* nextGeneration = (char*)malloc(u->width * u->height);
+    for (int y = 0; y < u->height; y++)
+        for (int x = 0; x < u->width; x++)
+            u->aliveCount += nextGeneration[(y * u->width) + x] = rule(u, x, y);
+    
+    u->generationCount++;
 
+    free(u->data);
+    u->data = nextGeneration;
 }
 
 void print_statistics(struct universe* u) {
+    int aliveCount = 0;
+    for (int y = 0; y < u->height; y++)
+        for (int x = 0; x < u->width; x++)
+            aliveCount += u->data[(y * u->width) + x];
 
+    float alivePercentage = 100.0 * (float)aliveCount / (float)(u->width * u->height),
+          averageAlivePercentage = 100.0 * (float)u->aliveCount / (float)(u->width * u->height * u->generationCount);
+    
+    printf("%.3f%% of cells currently alive\n%.3f%% of cells alive on average\n", alivePercentage, averageAlivePercentage);
 }
