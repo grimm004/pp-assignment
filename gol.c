@@ -1,10 +1,14 @@
 #include "gol.h"
-#include "stdio.h"
 #include <stdlib.h>
 
 int mod(int a, int b) {
     const int result = a % b;
     return result < 0 ? result + b : result;
+}
+
+void error(const char* message, int exitCode) {
+    fprintf(stderr, message);
+    exit(exitCode);
 }
 
 void read_in_file(FILE* infile, struct universe* u) {
@@ -70,7 +74,7 @@ int will_be_alive(struct universe* u, int column, int row) {
             if (!(x == row && y == column) && (-1 < x && x < u->width) && (-1 < y && y < u->height))
                 neighbourCount += is_alive(u, x, y);
     
-    return neighbourCount == 3 || (is_alive(u, column, row) && neighbourCount == 2);
+    return neighbourCount == 3 || (neighbourCount == 2 && is_alive(u, column, row));
 }
 
 int will_be_alive_torus(struct universe* u,  int column, int row) {
@@ -80,11 +84,12 @@ int will_be_alive_torus(struct universe* u,  int column, int row) {
             if (!(x == row && y == column))
                 neighbourCount += is_alive(u, mod(x, u->width), mod(y, u->height));
     
-    return neighbourCount == 3 || (is_alive(u, column, row) && neighbourCount == 2);
+    return neighbourCount == 3 || (neighbourCount == 2 && is_alive(u, column, row));
 }
 
 void evolve(struct universe* u, int (*rule)(struct universe *u, int column, int row)) {
     char* nextGeneration = (char*)malloc(u->width * u->height);
+    
     for (int y = 0; y < u->height; y++)
         for (int x = 0; x < u->width; x++)
             u->aliveCount += nextGeneration[(y * u->width) + x] = rule(u, x, y);

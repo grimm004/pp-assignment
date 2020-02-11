@@ -1,0 +1,1 @@
+all: gameoflife.c
