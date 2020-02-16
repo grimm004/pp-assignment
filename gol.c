@@ -1,14 +1,42 @@
 #include "gol.h"
 #include <stdlib.h>
 
+void error(int code) {
+    switch (code) {
+        case 1:
+        fprintf(stderr, "Error: Invalid row length\n");
+        break;
+        case 2:
+        fprintf(stderr, "Error: Invalid input character\n");
+        break;
+        case 3:
+        fprintf(stderr, "Error: Could not allocate memory\n");
+        break;
+        default:
+        break;
+    }
+    exit(code);
+}
+
 int mod(int a, int b) {
     const int result = a % b;
     return result < 0 ? result + b : result;
 }
 
-void error(const char* message, int exitCode) {
-    fprintf(stderr, message);
-    exit(exitCode);
+struct RowNode {
+    char data[512];
+    struct RowNode* next;
+};
+
+struct RowList {
+    struct RowNode* first;
+    struct RowNode* head;
+};
+
+void* allocate(int n, int size) {
+    void* location = calloc(n, size);
+    if (location == NULL) error(3);
+    return location;
 }
 
 void read_in_file(FILE* infile, struct universe* u) {
@@ -18,41 +46,43 @@ void read_in_file(FILE* infile, struct universe* u) {
     u->generationCount = 0;
 
     u->width = 0;
-    while (fgetc(infile) != '\n') {
-        u->width++;
-    }
-
-    fseek(infile, 0L, SEEK_END);
-    u->height = (ftell(infile) / (u->width + 1));
-
-    rewind(infile);
-
-    printf("Columns: %d, Rows: %d\n", u->width, u->height);
+    u->height = 0;
 
     // Load universe data
 
-    u->data = (char*)malloc(u->width * u->height);
+    struct RowList rowList;
+    rowList.first = rowList.head = allocate(1, sizeof(struct RowNode));
+    char firstPass = 1;
 
     char currentChar;
     int x = 0, y = 0;
-    while ((currentChar = fgetc(infile)) != EOF) {
+    while ((currentChar = fgetc(infile)) != EOF)
         if (currentChar == '\n') {
-            if (x != u->width) {
-                fprintf(stderr, "Error: Invalid row length (%d, expected %d).", x, u->width);
-                exit(1);
+            if (firstPass) {
+                firstPass = 0;
+                u->width = x;
             }
-            x = 0;
-            y++;
-            continue;
-        } else if (currentChar == '*' || currentChar == '.')
-            u->data[(y * u->width) + x++] = currentChar == '*';
-        else {
-            fprintf(stderr, "Error: Invalid character ('%c', expected '*' or '-').", (char)currentChar);
-            exit(1);
-        }
-    }
+            if (x != u->width) error(1);
 
-    fclose(infile);
+            struct RowNode* newHead = allocate(1, sizeof(struct RowNode));
+            rowList.head->next = newHead;
+            rowList.head = newHead;
+            rowList.head->next = NULL;
+
+            x = 0;
+            u->height++;
+            y++;
+        } else if (currentChar == '*' || currentChar == '.')
+            rowList.head->data[x++] = currentChar == '*';
+        else error(2);
+
+    u->data = (char*)allocate(u->width * u->height, sizeof(char));
+    struct RowNode* currentRow = rowList.first;
+    for (int y = 0; y < u->height; y++) {
+        for (int x = 0; x < u->width; x++)
+            u->data[(y * u->width) + x] = currentRow->data[x];
+        currentRow = currentRow->next;
+    }
 }
 
 void write_out_file(FILE *outfile, struct universe *u) {
@@ -64,7 +94,7 @@ void write_out_file(FILE *outfile, struct universe *u) {
 }
 
 int is_alive(struct universe* u, int column, int row) {
-    return u->data[(row * u->width) + column];
+    return u->data[(row * u->width) + column] & 1;
 }
 
 int will_be_alive(struct universe* u, int column, int row) {
@@ -73,7 +103,7 @@ int will_be_alive(struct universe* u, int column, int row) {
         for (int x = column - 1; x < column + 2; x++)
             if (!(x == row && y == column) && (-1 < x && x < u->width) && (-1 < y && y < u->height))
                 neighbourCount += is_alive(u, x, y);
-    
+
     return neighbourCount == 3 || (neighbourCount == 2 && is_alive(u, column, row));
 }
 
@@ -88,16 +118,18 @@ int will_be_alive_torus(struct universe* u,  int column, int row) {
 }
 
 void evolve(struct universe* u, int (*rule)(struct universe *u, int column, int row)) {
-    char* nextGeneration = (char*)malloc(u->width * u->height);
+    write_out_file(stdout, u);
+    printf("\n");
+
+    for (int y = 0; y < u->height; y++)
+        for (int x = 0; x < u->width; x++)
+            u->aliveCount += (u->data[(y * u->width) + x] |= rule(u, x, y) << 1) >> 1;
     
     for (int y = 0; y < u->height; y++)
         for (int x = 0; x < u->width; x++)
-            u->aliveCount += nextGeneration[(y * u->width) + x] = rule(u, x, y);
+            u->data[(y * u->width) + x] = u->data[(y * u->width) + x] >> 1;
     
     u->generationCount++;
-
-    free(u->data);
-    u->data = nextGeneration;
 }
 
 void print_statistics(struct universe* u) {

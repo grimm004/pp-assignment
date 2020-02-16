@@ -10,8 +10,6 @@ int main(int argc, char **argv) {
         printStats = 0,useTorusTopology = 0;
 
     for (int i = 0; i < argc; i++) {
-        printf("%s\n", argv[i]);
-
         switch (command) {
             case 0:
             if (strcmp(argv[i], "-i") == 0) {
@@ -46,7 +44,7 @@ int main(int argc, char **argv) {
             command = 0;
         }
     }
-    
+
     struct universe v;
     read_in_file(input == -1 ? stdin : fopen(argv[input], "r"), &v);
 
