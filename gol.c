@@ -75,13 +75,15 @@ void read_in_file(FILE* infile, struct universe* u) {
         } else if (currentChar == '*' || currentChar == '.')
             rowList.head->data[x++] = currentChar == '*';
         else error(2);
-
+    
     u->data = (char*)allocate(u->width * u->height, sizeof(char));
     struct RowNode* currentRow = rowList.first;
     for (int y = 0; y < u->height; y++) {
         for (int x = 0; x < u->width; x++)
             u->data[(y * u->width) + x] = currentRow->data[x];
+        struct RowNode* row = currentRow;
         currentRow = currentRow->next;
+        free(row);
     }
 }
 
@@ -94,14 +96,14 @@ void write_out_file(FILE *outfile, struct universe *u) {
 }
 
 int is_alive(struct universe* u, int column, int row) {
-    return u->data[(row * u->width) + column] & 1;
+    return u->data[(row * u->width) + column] & 0x01;
 }
 
 int will_be_alive(struct universe* u, int column, int row) {
     int neighbourCount = 0;
     for (int y = row - 1; y < row + 2; y++)
         for (int x = column - 1; x < column + 2; x++)
-            if (!(x == row && y == column) && (-1 < x && x < u->width) && (-1 < y && y < u->height))
+            if (!(x == column && y == row) && (-1 < x && x < u->width) && (-1 < y && y < u->height))
                 neighbourCount += is_alive(u, x, y);
 
     return neighbourCount == 3 || (neighbourCount == 2 && is_alive(u, column, row));
@@ -111,7 +113,7 @@ int will_be_alive_torus(struct universe* u,  int column, int row) {
     int neighbourCount = 0;
     for (int y = row - 1; y < row + 2; y++)
         for (int x = column - 1; x < column + 2; x++)
-            if (!(x == row && y == column))
+            if (!(x == column && y == row))
                 neighbourCount += is_alive(u, mod(x, u->width), mod(y, u->height));
     
     return neighbourCount == 3 || (neighbourCount == 2 && is_alive(u, column, row));
@@ -119,7 +121,7 @@ int will_be_alive_torus(struct universe* u,  int column, int row) {
 
 void evolve(struct universe* u, int (*rule)(struct universe *u, int column, int row)) {
     write_out_file(stdout, u);
-    printf("\n");
+    system("@cls||clear");
 
     for (int y = 0; y < u->height; y++)
         for (int x = 0; x < u->width; x++)
@@ -139,7 +141,7 @@ void print_statistics(struct universe* u) {
             aliveCount += u->data[(y * u->width) + x];
 
     float alivePercentage = 100.0 * (float)aliveCount / (float)(u->width * u->height),
-          averageAlivePercentage = 100.0 * (float)u->aliveCount / (float)(u->width * u->height * u->generationCount);
+          averageAlivePercentage = u->generationCount ? 100.0 * (float)u->aliveCount / (float)(u->width * u->height * u->generationCount) : alivePercentage;
     
     printf("%.3f%% of cells currently alive\n%.3f%% of cells alive on average\n", alivePercentage, averageAlivePercentage);
 }

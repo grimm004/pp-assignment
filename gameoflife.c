@@ -12,17 +12,11 @@ int main(int argc, char **argv) {
     for (int i = 0; i < argc; i++) {
         switch (command) {
             case 0:
-            if (strcmp(argv[i], "-i") == 0) {
-                command = 1;
-            } else if (strcmp(argv[i], "-o") == 0) {
-                command = 2;
-            } else if (strcmp(argv[i], "-g") == 0) {
-                command = 3;
-            } else if (strcmp(argv[i], "-s") == 0) {
-                printStats = 1;
-            } else if (strcmp(argv[i], "-t") == 0) {
-                useTorusTopology = 1;
-            }
+            if (strcmp(argv[i], "-i") == 0) command = 1;
+            else if (strcmp(argv[i], "-o") == 0) command = 2;
+            else if (strcmp(argv[i], "-g") == 0) command = 3;
+            else if (strcmp(argv[i], "-s") == 0) printStats = 1;
+            else if (strcmp(argv[i], "-t") == 0) useTorusTopology = 1;
             break;
 
             case 1:
@@ -48,7 +42,7 @@ int main(int argc, char **argv) {
     struct universe v;
     read_in_file(input == -1 ? stdin : fopen(argv[input], "r"), &v);
 
-    for (int i = 0; i < generationCount; i++)
+    while (1)//for (int i = 0; i < generationCount; i++)
         evolve(&v, useTorusTopology ? will_be_alive_torus : will_be_alive);
 
     write_out_file(output == -1 ? stdout : fopen(argv[output], "w"), &v);
