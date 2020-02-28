@@ -1,14 +1,17 @@
 CC = gcc
 
-all: libgol.so gameoflife.c
-	$(CC) -Wall -Wextra -pedantic -std=c11 gameoflife.c -lgol -L. -o gameoflife
+all: gameoflife.o libgol.so
+	$(CC) gameoflife.o -Wall -Wextra -pedantic -std=c11 -lgol -L. -o gameoflife
+
+gameoflife.o: gameoflife.c
+	$(CC) gameoflife.c -Wall -Wextra -pedantic -std=c11 -c
 
 libgol.so: gol.o
-	$(CC) -Wall -Wextra -pedantic -std=c11 -shared gol.o -o libgol.so
+	$(CC) gol.o -Wall -Wextra -pedantic -std=c11 -shared -o libgol.so
 
 gol.o: gol.c gol.h
-	$(CC) -Wall -Wextra -pedantic -std=c11 -fPIC -c gol.c
+	$(CC) gol.c -Wall -Wextra -pedantic -std=c11 -fPIC -c
 
 clean:
-	rm -rf gameoflife gol.o libgol.so
+	rm -rf gameoflife libgol.so gameoflife.o gol.o
 
