@@ -1,11 +1,12 @@
-all: gameoflife.o gol.o gol.h
-	gcc -Wall -Wextra -pedantic -std=c11 -o gameoflife gameoflife.o gol.o
+all: libgol.so gameoflife.c
+	gcc -Wall -Wextra -pedantic -std=c11 -o gameoflife gameoflife.c -lgol -L.
+
+libgol.so: gol.o
+	gcc -Wall -Wextra -pedantic -std=c11 -shared gol.o -o libgol.so
 
 gol.o: gol.c gol.h
-	gcc -Wall -Wextra -pedantic -std=c11 -c gol.c
-
-gameoflife.o: gameoflife.c
-	gcc -Wall -Wextra -pedantic -std=c11 -c gameoflife.c
+	gcc -Wall -Wextra -pedantic -std=c11 -fPIC -c gol.c
 
 clean:
-	rm -rf gameoflife gameoflife.o gameoflife.o
+	rm -rf gameoflife gol.o libgol.so
+
