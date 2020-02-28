@@ -8,10 +8,10 @@
 
 #define ERR_ROW_LENGTH       1
 #define ERR_INVALID_CHAR     2
-#define ERR_NO_MEMORY        3
-#define ERR_NULL_UNIVERSE    4
-#define ERR_INVALID_UNIVERSE 5
-
+#define ERR_INVALID_FILE     3
+#define ERR_NO_MEMORY        4
+#define ERR_NULL_UNIVERSE    5
+#define ERR_INVALID_UNIVERSE 6
 
 // Output an error based on the code and exit the program with the given code
 void error(int code) {
@@ -21,6 +21,9 @@ void error(int code) {
         break;
         case ERR_INVALID_CHAR:
         fprintf(stderr, "Error: Invalid input character.\n");
+        break;
+        case ERR_INVALID_FILE:
+        fprintf(stderr, "Error: Invalid universe file.\n");
         break;
         case ERR_NO_MEMORY:
         fprintf(stderr, "Error: Could not allocate memory.\n");
@@ -83,6 +86,8 @@ void* allocate(int n, int size) {
 }
 
 void read_in_file(FILE* infile, struct universe* u) {
+    // If file pointer is nullptr, throw error
+    if (!infile) error(ERR_INVALID_FILE);
     // If universe pointer is nullptr, throw error
     if (u == NULL) error(ERR_NULL_UNIVERSE);
     // If universe is already loaded, free its data
@@ -104,8 +109,8 @@ void read_in_file(FILE* infile, struct universe* u) {
     char currentChar;
     // Initialise the current universe location indices to zero
     int x = 0, y = 0;
-    // Read a single char at a time into currentChar
-    while ((currentChar = fgetc(infile)) != EOF)
+    // Read a single char at a time into currentChar (until end of file or the current row width exceeds 512 cells)
+    while ((currentChar = fgetc(infile)) != EOF && x < 513)
         switch (currentChar) {
             // At each line break...
             case '\n':
@@ -150,6 +155,11 @@ void read_in_file(FILE* infile, struct universe* u) {
             error(ERR_INVALID_CHAR);
             break;
         }
+    
+    // If there are more than 512 cells in a row, throw an error
+    if (x > 512) error(ERR_ROW_LENGTH);
+    // If x is non-zero (no new line at end of file), throw an error
+    else if (x != 0) error(ERR_INVALID_FILE);
 
     // Allocate required space for the one-dimensional universe data array
     u->data = (char*)allocate(u->width * u->height, sizeof(char));
@@ -173,6 +183,8 @@ void read_in_file(FILE* infile, struct universe* u) {
 }
 
 void write_out_file(FILE *outfile, struct universe *u) {
+    // If file pointer is nullptr, throw error
+    if (!outfile) error(ERR_INVALID_FILE);
     // Validate the integrity of the universe
     validateUniverse(u);
 
@@ -253,8 +265,9 @@ void print_statistics(struct universe* u) {
             aliveCount += u->data[(y * u->width) + x];
 
     // Calculate the current and average alive percentages
-    float alivePercentage = 100.0 * (float)aliveCount / (float)(u->width * u->height),
-          averageAlivePercentage = 100.0 * (float)u->aliveCount / (float)(u->width * u->height * u->generationCount);
+    float alivePercentage = (u->width * u->height) ? 100.0 * (float)aliveCount / (float)(u->width * u->height) : 0,
+          averageAlivePercentage = (u->width * u->height) ? 100.0 * (float)u->aliveCount / (float)(u->width * u->height * u->generationCount) : 0;
 
+    // Output the percentages in the required format
     printf("%.3f%% of cells currently alive\n%.3f%% of cells alive on average\n", alivePercentage, averageAlivePercentage);
 }

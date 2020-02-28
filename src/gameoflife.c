@@ -11,6 +11,7 @@
 #define ERR_INVALID_ARGV      -1
 #define ERR_CONFLICTING_ARGV  -2
 #define ERR_INVALID_GEN_COUNT -3
+#define ERR_INVALID_FILE      -4
 
 #define ARGV_SELECTOR    0
 #define ARGV_INPUT_FILE  1
@@ -19,7 +20,6 @@
 
 // TODO: makefile
 // TODO: test
-// Fix 23, 26, 27, 31, 36, 40, 44, 47, 50, 51, 52
 
 // Output an error based on the code and exit the program with the given code
 void loadError(int code) {
@@ -32,6 +32,9 @@ void loadError(int code) {
         break;
         case ERR_INVALID_GEN_COUNT:
         fprintf(stderr, "Error: Invalid or conflicting generation count.\n");
+        break;
+        case ERR_INVALID_FILE:
+        fprintf(stderr, "Error: Cloud not open universe file.\n");
         break;
         default:
         fprintf(stderr, "An unknown error occurred.\n");
@@ -121,14 +124,25 @@ int main(int argc, char* argv[]) {
             loadError(ERR_INVALID_ARGV);
             break;
         }
+
+    // Check commands have finished being entered
+    if (command != ARGV_SELECTOR) loadError(ERR_INVALID_ARGV);
     
     // If the generation count is undefined, set it to 5
     if (generationCount == UNDEFINED) generationCount = 5;
 
     // Create universe on stack
     struct universe v;
+
     // Load the universe from a file (if defined), else load from stdin
-    read_in_file(input == UNDEFINED ? stdin : fopen(argv[input], "r"), &v);
+    if (input == UNDEFINED) read_in_file(stdin, &v);
+    else {
+        FILE* inputFile = fopen(argv[input], "r");
+        if (inputFile) {
+            read_in_file(inputFile, &v);
+            fclose(inputFile);
+        } else loadError(ERR_INVALID_FILE);
+    }
 
     // Loop through each generation as specified
     for (int i = 0; i < generationCount; i++)
@@ -136,7 +150,14 @@ int main(int argc, char* argv[]) {
         evolve(&v, useTorusTopology ? will_be_alive_torus : will_be_alive);
 
     // Write the universe to a file (if defined), else write to stdout
-    write_out_file(output == UNDEFINED ? stdout : fopen(argv[output], "w"), &v);
+    if (output == UNDEFINED) write_out_file(stdout, &v);
+    else {
+        FILE* outputFile = fopen(argv[output], "w");
+        if (outputFile) {
+            write_out_file(outputFile, &v);
+            fclose(outputFile);
+        } else loadError(ERR_INVALID_FILE);
+    }
 
     // If set to print statistics, print them
     if (printStats)
