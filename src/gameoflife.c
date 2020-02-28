@@ -18,9 +18,6 @@
 #define ARGV_OUTPUT_FILE 2
 #define ARGV_GEN_COUNT   3
 
-// TODO: makefile
-// TODO: test
-
 // Output an error based on the code and exit the program with the given code
 void loadError(int code) {
     switch (code) {
